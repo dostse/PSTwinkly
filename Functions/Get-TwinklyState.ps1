@@ -17,16 +17,25 @@ function Get-TwinklyState{
     $Header = @{'Content-Type' = 'application/json'}
     $LoginData = @{'challenge' = $Challenge}
     
-    $token = Invoke-RestMethod -Method Post -Uri $URI/login -Headers $Header -Body ($LoginData | ConvertTo-Json)
-    $Header = @{'Content-Type' = 'application/json'
-                 'X-Auth-Token' = $token.authentication_token
-                }
-    $ChallengeRepsonse = @{'CHALLENGE_RESPONSE' = $token.'challenge-response'}
-    $Verify = Invoke-RestMethod -Method Post -Uri $URI/verify -Headers $Header -Body ($ChallengeRepsonse | ConvertTo-Json)
+    try{
 
-    if($Verify.code -eq 1000){
+        $token = Invoke-RestMethod -Method Post -Uri $URI/login -Headers $Header -Body ($LoginData | ConvertTo-Json)
+        $Header = @{'Content-Type' = 'application/json'
+                    'X-Auth-Token' = $token.authentication_token
+                    }
+        $ChallengeRepsonse = @{'CHALLENGE_RESPONSE' = $token.'challenge-response'}
+        $Verify = Invoke-RestMethod -Method Post -Uri $URI/verify -Headers $Header -Body ($ChallengeRepsonse | ConvertTo-Json)
 
-        Invoke-RestMethod -Method Get -Uri "$uri/led/mode" -Headers $Header
-        
+        if($Verify.code -eq 1000){
+
+            $Mode = Invoke-RestMethod -Method Get -Uri "$uri/led/mode" -Headers $Header
+            $Properties = [ordered]@{'Mode' = $Mode.mode}
+
+            $obj = New-Object -TypeName psobject -Property $Properties
+            Write-Output $obj
+        }
+    }
+    catch{
+        Write-Error -Message $_.Exception.Message
     }
 }

@@ -20,27 +20,44 @@ function Set-TwinklyMode{
     $Header = @{'Content-Type' = 'application/json'}
     $LoginData = @{'challenge' = $Challenge}
     
-    $token = Invoke-RestMethod -Method Post -Uri $URI/login -Headers $Header -Body ($LoginData | ConvertTo-Json)
-    $Header = @{'Content-Type' = 'application/json'
-                 'X-Auth-Token' = $token.authentication_token
-                }
-    $ChallengeRepsonse = @{'CHALLENGE_RESPONSE' = $token.'challenge-response'}
-    $Verify = Invoke-RestMethod -Method Post -Uri $URI/verify -Headers $Header -Body ($ChallengeRepsonse | ConvertTo-Json)
+    try{
 
-    if($Verify.code -eq 1000){
-        Switch ( $Mode ) {
-            
-            'On' { 
-                $Actions = @{'mode' = 'movie'}
+        $token = Invoke-RestMethod -Method Post -Uri $URI/login -Headers $Header -Body ($LoginData | ConvertTo-Json)
+        $Header = @{'Content-Type' = 'application/json'
+                    'X-Auth-Token' = $token.authentication_token
+                    }
+        $ChallengeRepsonse = @{'CHALLENGE_RESPONSE' = $token.'challenge-response'}
+        $Verify = Invoke-RestMethod -Method Post -Uri $URI/verify -Headers $Header -Body ($ChallengeRepsonse | ConvertTo-Json)
+
+        if($Verify.code -eq 1000){
+            Switch ( $Mode ) {
+                
+                'On' { 
+                    $Actions = @{'mode' = 'movie'}
+                }
+                'Off' { 
+                    $Actions = @{'mode' = 'off'}
+                }
+                'movie' {
+                    $Actions = @{'mode' = 'movie'}
+                }
             }
-            'Off' { 
-                $Actions = @{'mode' = 'off'}
+
+            $ModeStatus = Invoke-RestMethod -Method Post -Uri "$uri/led/mode" -Headers $Header -Body ($Actions | ConvertTo-Json)
+            if($ModeStatus.code -eq 1000){
+
+            $Properties = [ordered]@{'Status' = 'Success'}
+
+            $obj = New-Object -TypeName psobject -Property $Properties
+            Write-Output $obj
+
             }
-            'movie' {
-                $Actions = @{'mode' = 'movie'}
+            else{
+                throw "Error setting mode via API. Return Code: $($ModeStatus.Code)"
             }
         }
-
-        Invoke-RestMethod -Method Post -Uri "$uri/led/mode" -Headers $Header -Body ($Actions | ConvertTo-Json)
+    }
+    catch{
+        Write-Error -Message $_.Exception.Message
     }
 }

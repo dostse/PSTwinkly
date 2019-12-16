@@ -17,15 +17,50 @@ function Get-TwinklyInfo{
     $Header = @{'Content-Type' = 'application/json'}
     $LoginData = @{'challenge' = $Challenge}
     
-    $token = Invoke-RestMethod -Method Post -Uri $URI/login -Headers $Header -Body ($LoginData | ConvertTo-Json)
-    $Header = @{'Content-Type' = 'application/json'
-                 'X-Auth-Token' = $token.authentication_token
-                }
-    $ChallengeRepsonse = @{'CHALLENGE_RESPONSE' = $token.'challenge-response'}
-    $Verify = Invoke-RestMethod -Method Post -Uri $URI/verify -Headers $Header -Body ($ChallengeRepsonse | ConvertTo-Json)
+    try{
 
-    if($Verify.code -eq 1000){
+        $token = Invoke-RestMethod -Method Post -Uri $URI/login -Headers $Header -Body ($LoginData | ConvertTo-Json)
+        $Header = @{'Content-Type' = 'application/json'
+                    'X-Auth-Token' = $token.authentication_token
+                    }
+        $ChallengeRepsonse = @{'CHALLENGE_RESPONSE' = $token.'challenge-response'}
+        $Verify = Invoke-RestMethod -Method Post -Uri $URI/verify -Headers $Header -Body ($ChallengeRepsonse | ConvertTo-Json)
 
-        Invoke-RestMethod -Method Get -Uri "$URI/gestalt" -Headers $Header 
+        if($Verify.code -eq 1000){
+
+            $Info = Invoke-RestMethod -Method Get -Uri "$URI/gestalt" -Headers $Header 
+
+            if($Info.Code -eq 1000){
+                $Properties = [ordered]@{'DeviceName' = $Info.device_name
+                                        'ProductName' = $Info.product_name
+                                        'HardwareVersion' = $Info.hardware_version
+                                        'NumberOfLEDs' = $Info.number_of_led
+                                        'LEDProfile' = $Info.led_profile
+                                        'HardwareID' = $Info.hw_id
+                                        'MACAddress' = $Info.mac
+                                        'UUID' = $Info.UUID
+                                        'UpTime' = [timespan]::frommilliseconds($Info.uptime).ToString()
+                                        'ProductCode' = $Info.product_code
+                                        'FirmwareFamily' = $Info.fw_family
+                                        'FlashSize' = $Info.flash_size
+                                        'BytesPerLED' = $Info.bytes_per_led
+                                        'LEDType' = $Info.led_type
+                                        'MaxSupportedLEDs' = $Info.max_supported_led
+                                        'FrameRate' = $Info.frame_rate
+                                        'MovieCapacity' = $Info.movie_capacity
+                                        }
+                $obj = New-Object -TypeName psobject -Property $Properties
+                Write-Output $obj
+            }
+            else{
+                throw "Error getting info from API."
+            }
+        }
+        else{
+            throw 'Error calling the Verifying the AuthToken'
+        }
+    }
+    catch{
+        Write-Error -Message $_.Exception.Message
     }
 }
