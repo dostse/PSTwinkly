@@ -29,6 +29,7 @@ function Get-TwinklyInfo{
         if($Verify.code -eq 1000){
 
             $Info = Invoke-RestMethod -Method Get -Uri "$URI/gestalt" -Headers $Header 
+            $FWInfo = Invoke-RestMethod -Method Get -Uri "$URI/fw/version" -ContentType "application/json"
 
             if($Info.Code -eq 1000){
                 $Properties = [ordered]@{'DeviceName' = $Info.device_name
@@ -42,6 +43,7 @@ function Get-TwinklyInfo{
                                         'UpTime' = [timespan]::frommilliseconds($Info.uptime).ToString()
                                         'ProductCode' = $Info.product_code
                                         'FirmwareFamily' = $Info.fw_family
+                                        'FirmwareVersion' = $FWInfo.Version
                                         'FlashSize' = $Info.flash_size
                                         'BytesPerLED' = $Info.bytes_per_led
                                         'LEDType' = $Info.led_type
