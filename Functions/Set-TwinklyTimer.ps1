@@ -61,7 +61,7 @@ function Set-TwinklyTimer{
     
             }
             else{
-                throw "Error setting mode via API. Return Code: $($Status.Code)"
+                throw "Error setting timer via API. Return Code: $($Status.Code)"
             }            
             
         }
